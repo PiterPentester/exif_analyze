@@ -337,6 +337,9 @@ class option(QDialog):
         
         flag = 0
         state = False
+        self.option_flag = []
+        self.option_flag.append(False)
+        self.option_flag.append(False)
 
         layout = QGridLayout()
         self.setLayout(layout)
@@ -345,42 +348,33 @@ class option(QDialog):
 
         self.op1 = QCheckBox("Make/Model")
         self.op1.setEnabled(True)
-        self.op1.toggled.connect(self.make_model_cmp)
+        self.op1.toggled.connect(partial(self.op_chk,0))
         layout.addWidget(self.op1, 0,0)
 
-        self.op2 = QCheckBox("Date")
+        self.op2 = QCheckBox("DateChanged")
         self.op2.setEnabled(True)
-        self.op2.toggled.connect(self.test)
+        self.op2.toggled.connect(partial(self.op_chk,1))
         layout.addWidget(self.op2, 0,1)
-
-        self.op3 = QCheckBox("DateOrigin")
-        self.op3.setEnabled(True)
-        self.op3.toggled.connect(self.test)
-        layout.addWidget(self.op3, 0,2)
-
-        self.op4 = QCheckBox("DateDigit")
-        self.op4.setEnabled(True)
-        self.op4.toggled.connect(self.test)
-        layout.addWidget(self.op4, 0,3)
-
-        self.op5 = QCheckBox("DateChanged")
-        self.op5.setEnabled(True)
-        self.op5.toggled.connect(self.test)
-        layout.addWidget(self.op5, 0,4)
 
         button = QPushButton("OK")
         button.clicked.connect(self.test)
 
-        layout.addWidget(button, 1,2)
+        layout.addWidget(button, 1,0)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Cancel)
         buttonBox.rejected.connect(self.reject) 
 
-        layout.addWidget(buttonBox, 1,3)
+        layout.addWidget(buttonBox, 1,1)
+
+    def op_chk(self, idx):
+        if self.option_flag[idx] == True:
+            self.option_flag[idx] = False
+        else:
+            self.option_flag[idx] = True
 
 
     def test(self):
-        print("test")
+        print(self.option_flag)
 
     def make_model_cmp(self):
         print(os.getcwd())
