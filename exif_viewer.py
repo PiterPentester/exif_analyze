@@ -8,6 +8,7 @@ from PIL.ExifTags import TAGS, GPSTAGS
 from time import *
 from functools import partial
 
+option_lst = []
 
 def timeformat(time):
     local_tuple = localtime(time)
@@ -100,7 +101,7 @@ class MainDialog(QDialog):
         self.initUI()
 
     def initUI(self):
-        self.setWindowTitle("Test Window")        
+        self.setWindowTitle("EXIF Viewer")        
 
         path = ""
         dirName = QLabel("Path ")
@@ -110,7 +111,7 @@ class MainDialog(QDialog):
         dirButton = QPushButton("Path..")
         dirButton.clicked.connect(partial(self.setExistingDir, dirValue))
 
-        grpButton = QPushButton("Option")
+        grpButton = QPushButton("Group")
         grpButton.clicked.connect(self.buildPopup)
 
 
@@ -153,7 +154,7 @@ class MainDialog(QDialog):
 
         self.show()
 
-    def buildPopup(self):
+    def buildPopup(self):        
         opPopup = option(self)
         opPopup.setGeometry(100,200,100,100)
         opPopup.show()
@@ -186,8 +187,6 @@ class MainDialog(QDialog):
 
         imgPop = ImgPopup(index_list[0], self)
         imgPop.show()
-
-
 
     def setExistingDir(self, dirValue):
         options = QFileDialog.DontResolveSymlinks | QFileDialog.ShowDirsOnly
@@ -357,17 +356,20 @@ class option(QDialog):
         layout.addWidget(self.op2, 0,1)
 
         button = QPushButton("OK")
-        button.clicked.connect(self.buildPopup())
+        button.clicked.connect(self.buildPopup)
 
         layout.addWidget(button, 1,0)
 
         buttonBox = QDialogButtonBox(QDialogButtonBox.Cancel)
         buttonBox.rejected.connect(self.reject) 
 
-        layout.addWidget(buttonBox, 1,1)
+        layout.addWidget(buttonBox, 1,1)        
 
     def buildPopup(self):
-        grp = groupPop(self)
+        option_lst.clear()
+        for b in self.option_flag:
+            option_lst.append(b)
+        grp = groupPop(self)        
         grp.setGeometry(10,10,1920,1080)
         grp.show()
 
@@ -377,7 +379,6 @@ class option(QDialog):
         else:
             self.option_flag[idx] = True
 
-
     def test(self):
         print(self.option_flag)
 
@@ -386,12 +387,158 @@ class option(QDialog):
 
 class groupPop(QDialog):
     def __init__(self, parent=None):
-        super().__init__(parent)
+        super().__init__(parent)       
+        self.initUI()
 
-        print(os.getcwd())
-        #print(option)
+    def initUI(self):
+        self.setWindowTitle("Group")
+
+        self.createTable()        
+
+        buttonBox = QDialogButtonBox(QDialogButtonBox.Cancel)
+        buttonBox.rejected.connect(self.reject)
+
+        labelLayout = QHBoxLayout()
+        modelLabel = QLabel("Model")
+        modelLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        makeLabel = QLabel("Make")
+        makeLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        dateLabel = QLabel("Date")
+        dateLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+
+        self.layout = QVBoxLayout()
+        self.layout.addLayout(labelLayout)
+
+        tableLayout = QHBoxLayout()
+        if option_lst[0] == True:
+            labelLayout.addWidget(modelLabel)
+            labelLayout.addWidget(makeLabel)
+            tableLayout.addWidget(self.mmTable)
+            tableLayout.addWidget(self.makeTable)
+        if option_lst[1] == True:
+            labelLayout.addWidget(dateLabel)
+            tableLayout.addWidget(self.dateTable)
+        self.layout.addLayout(tableLayout)
+        self.layout.addWidget(buttonBox)
+
+        self.setLayout(self.layout)
+
+    def createTable(self):
+        self.flist = []
+        self.model = []
+        self.model_g = {}
+        self.make = []
+        self.make_g = {}
+        self.date = {}
+
+        self.date.update({"Original":[]})
+        self.date.update({"Modified":[]})
+
+        tmp = os.listdir(os.getcwd())
+        for f in tmp:
+            ext = f.split(".")[-1].lower()
+            if ext == "jpg" or ext == "jpeg":
+                self.flist.append(f) 
+
+        self.img = []
+        for f in self.flist:
+            self.img.append(ImageMetaData(f))    
+
+        for i in self.img:
+            d = i.get_exif_data()
+            #print(d['Model'], d['Make'])
+
+        if option_lst[0] == True:
+            self.grp_make_model()
+
+        if option_lst[1] == True:
+            self.grp_date()
+
+    def grp_make_model(self):
+        for i in range(len(self.img)):
+            d = self.img[i].get_exif_data()
+            if 'Model' in d.keys():
+                if d['Model'] in self.model:
+                    self.model_g[d['Model']].append(self.flist[i])
+                else:
+                    self.model.append(d['Model'])
+                    self.model_g.update({d['Model']:[self.flist[i]]})
+            if 'Make' in d.keys():
+                if d['Make'] in self.make:
+                    self.make_g[d['Make']].append(self.flist[i])
+                else:
+                    self.make.append(d['Make'])
+                    self.make_g.update({d['Make']:[self.flist[i]]})
+
+        self.mmTable = QTableWidget()        
+        self.mmTable.setRowCount(len(self.flist))
+        self.mmTable.setColumnCount(2)
+
+        self.mmTable.setHorizontalHeaderLabels(["[Model]", "[File]"])
+
+        cnt = 0
+        for i in self.model_g.keys():
+            self.mmTable.setItem(cnt, 0, QTableWidgetItem(str(i)))                        
+            for m in self.model_g[i]:                                
+                self.mmTable.setItem(cnt, 1, QTableWidgetItem(str(m)))
+                cnt += 1
+
+        self.makeTable = QTableWidget()
+        self.makeTable.setRowCount(len(self.flist))
+        self.makeTable.setColumnCount(2)
+
+        self.makeTable.setHorizontalHeaderLabels(["[Make]","[File]"])
+        cnt = 0        
+        for i in self.make_g.keys():
+            self.makeTable.setItem(cnt, 0, QTableWidgetItem(str(i)))
+            for m in self.make_g[i]:
+                self.makeTable.setItem(cnt, 1, QTableWidgetItem(str(m)))
+                cnt += 1
+
+    def grp_date(self):
+        for i in range(len(self.img)):            
+            d = self.img[i].get_exif_data()
+            date = ""
+            date_ori = ""
+            date_dig = ""
+
+            if "DateTime" in d.keys():
+                date = d["DateTime"]
+            if "DateTimeOriginal" in d.keys():
+                date_ori = d["DateTimeOriginal"]
+            if "DateTimeDigitized" in d.keys():
+                date_dig = d["DateTimeDigitized"]
+
+            if date == date_ori:
+                if date == date_dig:
+                    self.date["Original"].append(self.flist[i])
+                else:
+                    self.date["Modified"].append(self.flist[i])
+            else:
+                self.date["Modified"].append(self.flist[i])
+
+        self.dateTable = QTableWidget()
+        self.dateTable.setRowCount(len(self.flist))
+        self.dateTable.setColumnCount(2)
+
+        self.dateTable.setHorizontalHeaderLabels(["[Date]","[File]"])
+        
+        cnt = 0
+        self.dateTable.setItem(cnt, 0, QTableWidgetItem("Original"))
+        #cnt += 1
+        for m in self.date["Original"]:
+            self.dateTable.setItem(cnt, 1, QTableWidgetItem(m))
+            cnt += 1
+
+        self.dateTable.setItem(cnt, 0, QTableWidgetItem("Modified"))
+        #cnt += 1
+        for m in self.date["Modified"]:
+            self.dateTable.setItem(cnt, 1, QTableWidgetItem(m))
+            cnt += 1 
 
 
+
+        
 
 if __name__ == "__main__":
     app = QApplication(sys.argv)
