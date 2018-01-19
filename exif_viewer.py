@@ -357,7 +357,7 @@ class option(QDialog):
         layout.addWidget(self.op2, 0,1)
 
         button = QPushButton("OK")
-        button.clicked.connect(self.test)
+        button.clicked.connect(self.buildPopup())
 
         layout.addWidget(button, 1,0)
 
@@ -365,6 +365,11 @@ class option(QDialog):
         buttonBox.rejected.connect(self.reject) 
 
         layout.addWidget(buttonBox, 1,1)
+
+    def buildPopup(self):
+        grp = groupPop(self)
+        grp.setGeometry(10,10,1920,1080)
+        grp.show()
 
     def op_chk(self, idx):
         if self.option_flag[idx] == True:
@@ -378,6 +383,14 @@ class option(QDialog):
 
     def make_model_cmp(self):
         print(os.getcwd())
+
+class groupPop(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        print(os.getcwd())
+        #print(option)
+
 
 
 if __name__ == "__main__":
