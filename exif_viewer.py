@@ -339,6 +339,7 @@ class option(QDialog):
         self.option_flag = []
         self.option_flag.append(False)
         self.option_flag.append(False)
+        self.option_flag.append(False)
 
         layout = QGridLayout()
         self.setLayout(layout)
@@ -354,6 +355,11 @@ class option(QDialog):
         self.op2.setEnabled(True)
         self.op2.toggled.connect(partial(self.op_chk,1))
         layout.addWidget(self.op2, 0,1)
+
+        self.op3 = QCheckBox("Size")
+        self.op3.setEnabled(True)
+        self.op3.toggled.connect(partial(self.op_chk,2))
+        layout.addWidget(self.op3, 0,2)
 
         button = QPushButton("OK")
         button.clicked.connect(self.buildPopup)
@@ -405,6 +411,8 @@ class groupPop(QDialog):
         makeLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         dateLabel = QLabel("Date")
         dateLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        sizeLabel = QLabel("Size")
+        sizeLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
 
         self.layout = QVBoxLayout()
         self.layout.addLayout(labelLayout)
@@ -418,6 +426,10 @@ class groupPop(QDialog):
         if option_lst[1] == True:
             labelLayout.addWidget(dateLabel)
             tableLayout.addWidget(self.dateTable)
+        if option_lst[2] == True:
+            labelLayout.addWidget(sizeLabel)
+            tableLayout.addWidget(self.sizeTable)
+
         self.layout.addLayout(tableLayout)
         self.layout.addWidget(buttonBox)
 
@@ -430,9 +442,13 @@ class groupPop(QDialog):
         self.make = []
         self.make_g = {}
         self.date = {}
+        self.size= {}
 
         self.date.update({"Original":[]})
         self.date.update({"Modified":[]})
+
+        self.size.update({"Original":[]})
+        self.size.update({"Modified":[]})
 
         tmp = os.listdir(os.getcwd())
         for f in tmp:
@@ -453,6 +469,9 @@ class groupPop(QDialog):
 
         if option_lst[1] == True:
             self.grp_date()
+
+        if option_lst[2] == True:
+            self.grp_size()
 
     def grp_make_model(self):
         for i in range(len(self.img)):
@@ -534,7 +553,42 @@ class groupPop(QDialog):
         #cnt += 1
         for m in self.date["Modified"]:
             self.dateTable.setItem(cnt, 1, QTableWidgetItem(m))
-            cnt += 1 
+            cnt += 1
+
+    def grp_size(self):
+        "ExifImageWidth", "ExifImageHeight"
+        for i in range(len(self.img)):
+            width, height = self.img[i].image.size
+            d = self.img[i].get_exif_data()
+
+            exif_w = d["ExifImageWidth"]
+            exif_h = d["ExifImageHeight"]
+
+            if width != exif_w or height != exif_h:
+                self.size["Modified"].append(self.flist[i])
+            else:
+                self.size["Original"].append(self.flist[i])
+
+        self.sizeTable = QTableWidget()
+        self.sizeTable.setRowCount(len(self.flist))
+        self.sizeTable.setColumnCount(2)
+
+        self.sizeTable.setHorizontalHeaderLabels(["[Size]","[File]"])
+
+        cnt = 0
+        self.sizeTable.setItem(cnt,0,QTableWidgetItem("Original"))
+
+        for m in self.size["Original"]:
+            self.sizeTable.setItem(cnt,1,QTableWidgetItem(str(m)))
+            cnt += 1
+
+        self.sizeTable.setItem(cnt,0,QTableWidgetItem("Modified"))
+        for m in self.size["Modified"]:
+            self.sizeTable.setItem(cnt,1,QTableWidgetItem(str(m)))
+            cnt += 1
+
+
+
 
 
 
