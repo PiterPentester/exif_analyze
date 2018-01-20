@@ -340,6 +340,7 @@ class option(QDialog):
         self.option_flag.append(False)
         self.option_flag.append(False)
         self.option_flag.append(False)
+        self.option_flag.append(False)
 
         layout = QGridLayout()
         self.setLayout(layout)
@@ -360,6 +361,11 @@ class option(QDialog):
         self.op3.setEnabled(True)
         self.op3.toggled.connect(partial(self.op_chk,2))
         layout.addWidget(self.op3, 0,2)
+
+        self.op4 = QCheckBox("Software")
+        self.op4.setEnabled(True)
+        self.op4.toggled.connect(partial(self.op_chk,3))
+        layout.addWidget(self.op4, 0,3)
 
         button = QPushButton("OK")
         button.clicked.connect(self.buildPopup)
@@ -413,6 +419,8 @@ class groupPop(QDialog):
         dateLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
         sizeLabel = QLabel("Size")
         sizeLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
+        softLabel = QLabel("Software")
+        softLabel.setFrameStyle(QFrame.Panel | QFrame.Sunken)
 
         self.layout = QVBoxLayout()
         self.layout.addLayout(labelLayout)
@@ -429,6 +437,9 @@ class groupPop(QDialog):
         if option_lst[2] == True:
             labelLayout.addWidget(sizeLabel)
             tableLayout.addWidget(self.sizeTable)
+        if option_lst[3] == True:
+            labelLayout.addWidget(softLabel)
+            tableLayout.addWidget(self.softwareTable)
 
         self.layout.addLayout(tableLayout)
         self.layout.addWidget(buttonBox)
@@ -443,6 +454,8 @@ class groupPop(QDialog):
         self.make_g = {}
         self.date = {}
         self.size= {}
+        self.software = []
+        self.software_g = {}
 
         self.date.update({"Original":[]})
         self.date.update({"Modified":[]})
@@ -472,6 +485,9 @@ class groupPop(QDialog):
 
         if option_lst[2] == True:
             self.grp_size()
+
+        if option_lst[3] == True:
+            self.grp_software()
 
     def grp_make_model(self):
         for i in range(len(self.img)):
@@ -561,13 +577,14 @@ class groupPop(QDialog):
             width, height = self.img[i].image.size
             d = self.img[i].get_exif_data()
 
-            exif_w = d["ExifImageWidth"]
-            exif_h = d["ExifImageHeight"]
+            if "ExifImageWidth" in d.keys() and "ExifImageHeight" in d.keys():
+                exif_w = d["ExifImageWidth"]
+                exif_h = d["ExifImageHeight"]
 
-            if width != exif_w or height != exif_h:
-                self.size["Modified"].append(self.flist[i])
-            else:
-                self.size["Original"].append(self.flist[i])
+                if width != exif_w or height != exif_h:
+                    self.size["Modified"].append(self.flist[i])
+                else:
+                    self.size["Original"].append(self.flist[i])
 
         self.sizeTable = QTableWidget()
         self.sizeTable.setRowCount(len(self.flist))
@@ -586,6 +603,31 @@ class groupPop(QDialog):
         for m in self.size["Modified"]:
             self.sizeTable.setItem(cnt,1,QTableWidgetItem(str(m)))
             cnt += 1
+
+    def grp_software(self):
+        for i in range(len(self.img)):            
+            d = self.img[i].get_exif_data()
+            if "Software" in d.keys():
+                software = d["Software"]
+                if software in self.software:
+                    self.software_g[software].append(self.flist[i])
+                else:
+                    self.software.append(software)
+                    self.software_g.update({software:[self.flist[i]]})
+
+        self.softwareTable = QTableWidget()
+        self.softwareTable.setRowCount(len(self.flist))
+        self.softwareTable.setColumnCount(2)
+
+        self.softwareTable.setHorizontalHeaderLabels(["[Software]","[File]"])
+
+        cnt = 0
+
+        for m in self.software:
+            self.softwareTable.setItem(cnt,0,QTableWidgetItem(m))
+            for n in self.software_g[m]:
+                self.softwareTable.setItem(cnt,1,QTableWidgetItem(n))
+                cnt += 1
 
 
 
